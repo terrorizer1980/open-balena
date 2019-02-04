@@ -1,0 +1,25 @@
+#!/bin/bash
+
+DIR_NAME="$(dirname $0)"
+. "${DIR_NAME}/_realpath"
+
+DEFAULT_CERT="$(realpath ~/openbalena/deploy-templates/release/openbalena/v1.0.0/ca.crt)"
+CA_CERT="${1:-$DEFAULT_CERT}"
+CA_CERT="$(realpath $CA_CERT)"
+
+echo "Trusting certificate ${CA_CERT}..."
+
+if [ "$(id -nu)" != "root" ]; then
+    echo "==> Escalating privileges..."
+    exec sudo bash -c "$0 ${CA_CERT}"
+    exit 1
+fi
+
+echo "Copying certificate..."
+mkdir -p /usr/local/share/ca-certificates/openbalena
+chmod 755 /usr/local/share/ca-certificates/openbalena
+cp "${CA_CERT}" /usr/local/share/ca-certificates/openbalena/
+chmod 644 /usr/local/share/ca-certificates/openbalena/ca.crt
+
+echo "Reloading certificates..."
+update-ca-certificates

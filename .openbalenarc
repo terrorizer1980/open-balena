@@ -1,6 +1,80 @@
 #!/bin/bash
 
-alias dc="/home/vagrant/openbalena/scripts/compose"
+DIR_NAME="/home/vagrant/openbalena"
+. "${DIR_NAME}/scripts/_realpath"
+
+function quickstart () {
+	if [[ $# -lt 1 ]]; then			
+		echo "Usage: quickstart <target>"
+		echo "  "
+		echo "  Brings up an openBalena install for a given <target>."
+		echo "  "
+		echo "  example:"
+		echo "    quickstart docker-compose       # this will start openBalena on your local machine using docker-compose"
+		return 1
+	fi
+
+	KATAPULT="$(command -v katapult)"
+	TARGET="$1"
+	"${KATAPULT}" deploy -c ./deploy-templates -e openbalena -t "${TARGET}" --mode aggressive -v
+
+	post_quickstart
+}
+
+function post_quickstart () {
+	ENV_FILE="$(realpath ~/openbalena/deploy-templates/openbalena/v1.0.0/docker-compose/environment.env)"
+
+	if [ ! -f "${ENV_FILE}" ]; then
+		echo "Unable to find environment file for Katapult: ${ENV_FILE}"
+		return 2
+	fi
+
+	RELEASE_PATH="$(realpath ~/openbalena/deploy-templates/release/openbalena/v1.0.0)"
+	CA_CERT_PATH="${RELEASE_PATH}/ca.crt"
+	SERVER_CERT_PATH="${RELEASE_PATH}/server.crt"
+	
+	source "${ENV_FILE}" 2>&1
+	echo "$OPENBALENA_ROOT_CA" | base64 -d > "${CA_CERT_PATH}"
+	echo "$OPENBALENA_CRT" | base64 -d > "${SERVER_CERT_PATH}"
+
+	echo "Your openBalena Install:"
+	echo "  "
+	echo "  Credentials:"
+	echo "    email:    ${OPENBALENA_SUPERUSER_EMAIL}"
+	echo "    password: ${OPENBALENA_SUPERUSER_PASSWORD}"
+	echo "  "
+	echo "  Certificates:"
+	echo "    CA: ${CA_CERT_PATH}"
+	echo "  "
+	echo "  Getting Started:"
+	echo "    $ trust-openbalena-cert ${CA_CERT_PATH}"
+	echo "    $ export NODE_EXTRA_CA_CERTS=${CA_CERT_PATH}"
+	echo "    $ export BALENARC_BALENA_URL=${OPENBALENA_HOST_NAME}"
+	echo "    $ balena login"
+	echo "  "
+}
+
+function dc () {
+	if [[ $# -lt 1 ]]; then			
+		echo "Usage: dc <args>"
+		echo "  "
+		echo "  Runs docker-compose with <args> against the generated compose file from Katapult."
+		echo "  "
+		echo "  example:"
+		echo "    dc up -d          # this will run the 'up' command to bring up all the services"
+		return 1
+	fi
+
+	COMPOSE="$(command -v docker-compose)"
+	COMPOSE_FILE="./deploy-templates/release/openbalena/v1.0.0/docker-compose/docker-compose.yml"
+
+	if [ ! -f "${COMPOSE_FILE}" ]; then
+		echo "Unable to find docker-compose file from Katapult. Have you run Katapult?"
+		return 2
+	fi
+	
+	"${COMPOSE}" -f "./deploy-templates/release/openbalena/v1.0.0/docker-compose/docker-compose.yml" "$@"
+}
 
 function enter () {
 	if [[ $# -lt 1 ]]; then			
@@ -48,3 +122,4 @@ function logs () {
 }
 
 cd /home/vagrant/openbalena
+export PATH="${PATH}:~/openbalena/scripts"

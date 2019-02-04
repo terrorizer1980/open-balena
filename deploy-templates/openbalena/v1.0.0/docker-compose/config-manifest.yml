@@ -66,7 +66,8 @@ properties:
             privateKeyPEM: base64decode(OPENBALENA_CRT_KEY),
             validFrom: '2015',
             validTo: '2025',
-            bits: 4096
+            bits: 4096,
+            extKeyUsage: [ 'serverAuth' ]
           }))
   - OPENBALENA_TOKEN_AUTH_PUB:
       type: string
@@ -79,6 +80,10 @@ properties:
       pattern: "^[0-9A-Za-z_]{16,128}$"
       default:
         eval: GENERATE_API_KEY({length: 64})
+  - OPENBALENA_VPN_CA:
+      type: string
+      default:
+        eval: OPENBALENA_ROOT_CA
   - OPENBALENA_VPN_SERVER_KEY:
       type: string
       default:
@@ -88,7 +93,7 @@ properties:
       default:
         eval: >
           base64(GENERATE_CERT({
-            caAttrs: {
+            certAttrs: {
               C: 'US',
               L: 'Seattle',
               O: 'Balena Ltd.',
@@ -100,7 +105,8 @@ properties:
             caPrivateKeyPEM: base64decode(OPENBALENA_ROOT_KEY),
             privateKeyPEM: base64decode(OPENBALENA_VPN_SERVER_KEY),
             validFrom: '2015',
-            validTo: '2025'
+            validTo: '2025',
+            extKeyUsage: [ 'serverAuth' ]
           }))
   - OPENBALENA_VPN_SERVER_DH:
       type: string
@@ -161,71 +167,106 @@ properties:
   - OPENBALENA_HAPROXY_CONFIG:
       type: string
       default:
-        eval: |
-          `
+        eval: |-
+          base64(`
           {
             "api": {
-              "backend": [
-              {
-                "url": "http://api:80"
-              }
-              ],
-              "frontend": [
-              {
-                "protocol": "https",
-                "domain": "` + OPENBALENA_HOST_NAME + `",
-                "subdomain": "api",
-                "port": "443",
-                "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"
-              }
-              ]
+                "backend": [
+                    {
+                        "url": "http://api:80",
+                        "server": {
+                            "check": null,
+                            "port": "80"
+                        }
+                    }
+                ],
+                "frontend": [
+                    {
+                        "protocol": "https",
+                        "domain": "` + OPENBALENA_HOST_NAME + `",
+                        "subdomain": "api",
+                        "port": "443",
+                        "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"
+                    }
+                ]
             },
-            "registry": {
-              "backend": [
-              {
-                "url": "http://registry:80"
-              }
-              ],
-              "frontend": [
-              {
-                "protocol": "https",
-                "domain": "` + OPENBALENA_HOST_NAME + `",
-                "subdomain": "registry",
-                "port": "443",
-                "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"
-              }
-              ]
+            "registry2": {
+                "backend": [
+                    {
+                        "url": "http://registry2:80",
+                        "server": {
+                            "check": null,
+                            "port": "80"
+                        }
+                    }
+                ],
+                "frontend": [
+                    {
+                        "protocol": "https",
+                        "domain": "` + OPENBALENA_HOST_NAME + `",
+                        "subdomain": "registry",
+                        "port": "443",
+                        "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"
+                    }
+                ]
             },
             "s3": {
-              "backend": [
-              {
-                "url": "http://s3:80"
-              }
-              ],
-              "frontend": [
-              {
-                "protocol": "https",
-                "domain": "` + OPENBALENA_HOST_NAME + `",
-                "subdomain": "s3",
-                "port": "443",
-                "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"
-              }
-              ]
+                "backend": [
+                    {
+                        "url": "http://s3:80",
+                        "server": {
+                            "check": null,
+                            "port": "80"
+                        }
+                    }
+                ],
+                "frontend": [
+                    {
+                        "protocol": "https",
+                        "domain": "` + OPENBALENA_HOST_NAME + `",
+                        "subdomain": "s3",
+                        "port": "443",
+                        "crt": "` + escape(base64decode(OPENBALENA_CRT) + base64decode(OPENBALENA_CRT_KEY) + base64decode(OPENBALENA_ROOT_CA)) + `"                        
+                    }
+                ]
             },
             "vpn": {
-              "backend": [
-              {
-                "url": "tcp://vpn:443"
-              }
-              ],
-              "frontend": [
-              {
-                "protocol": "tcp",
-                "domain": "` + OPENBALENA_HOST_NAME + `",
-                "subdomain": "vpn",
-                "port": "443"
-              }
-              ]
+                "backend": [
+                    {
+                        "url": "tcp://vpn:443",
+                        "server": {
+                            "send-proxy-v2": null,
+                            "check-send-proxy": null,
+                            "port": "443"
+                        }
+                    }
+                ],
+                "frontend": [
+                    {
+                        "protocol": "tcp",
+                        "domain": "` + OPENBALENA_HOST_NAME + `",
+                        "subdomain": "vpn",
+                        "port": "443"
+                    }
+                ]
+            },
+            "device-tunnel": {
+                "backend": [
+                    {
+                        "url": "tcp://vpn:3128",
+                        "server": {
+                            "check": null,
+                            "port": "3128"
+                        }
+                    }
+                ],
+                "frontend": [
+                    {
+                        "protocol": "tcp",
+                        "domain": "*",
+                        "port": "3128"
+                    }
+                ]
             }
           }
-          `
+          `)
