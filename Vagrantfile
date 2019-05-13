@@ -35,6 +35,10 @@ Vagrant.configure('2') do |config|
     (cd /usr/local/bin; \
     sudo curl -o docker-compose --silent --location https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-Linux-x86_64; \
     sudo chmod a+x docker-compose)
+
+    # Install Avahi MDNS suite
+    sudo apt-get update
+    sudo apt-get install -y avahi-daemon avahi-discover avahi-utils libnss-mdns
   SCRIPT
 
   config.vm.provision :shell, privileged: false, inline: $provision

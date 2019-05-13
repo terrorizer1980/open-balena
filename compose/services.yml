@@ -133,6 +133,20 @@ services:
     volumes:
       - redis:/data
 
+  balena-mdns-publisher:
+    extends:
+      file: ./common.yml
+      service: component
+    image: balena/balena-mdns-publisher:${BALENA_MDNS_PUBLISHER_VERSION_TAG:-master}
+    network_mode: "host"
+    volumes:
+      - /run/dbus/system_bus_socket:/host/run/dbus/system_bus_socket
+    environment:
+      MDNS_TLD: "${OPENBALENA_HOST_NAME}"
+      MDNS_SUBDOMAINS: '[ "api", "registry", "vpn", "db", "s3", "redis" ]'
+      DBUS_SESSION_BUS_ADDRESS: "unix:path=/host/run/dbus/system_bus_socket"
+      INTERFACE: "eth1"
+
   haproxy:
     extends:
       file: ./common.yml
