@@ -1,4 +1,5 @@
-<img alt="openBalena" src="docs/assets/openbalena-logo.svg" height="82">
+![Open Balena](https://raw.githubusercontent.com/balena-io/open-balena/landr-preview/docs/assets/open-balena.png)
+
 
 ---
 
@@ -15,7 +16,7 @@ images to your devices.
 To learn more about openBalena, visit [balena.io/open][open-balena-website].
 
 
-## Features
+## Highlights
 
 - **Simple provisioning**: Adding devices to your fleet is a breeze
 - **Easy updates**: Remotely update the software on your devices with a single command
