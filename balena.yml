@@ -1,0 +1,16 @@
+
+applicationEnvironmentVariables:
+- ROOT_CA: "{CA PEM in Base64}"
+- ROOT_CRT: "{CA CRT in Base64}"
+- ROOT_KEY: "{CA Key in Base64}"
+- JWT_CRT: "{JWT CRT in Base64}"
+- JWT_KEY: "{JWT Key in Base64}"
+- JWT_KID: "{JWT Key ID}"
+- VPN_CA: "{VPN CA in Base64}"
+- VPN_CRT: "{VPN CRT in Base64}"
+- VPN_KEY: "{VPN Key in Base64}"
+- VPN_DH: "{VPN DH Params in Base64}"
+- SUPERUSER_EMAIL: "user@email.com"
+- SUPERUSER_PASSWORD: "Password01!"
+
+defaultDeviceType: 'intel-nuc'

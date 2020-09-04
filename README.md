@@ -14,6 +14,8 @@ images to your devices.
 
 To learn more about openBalena, visit [balena.io/open][open-balena-website].
 
+[![](https://www.balena.io/deploy.png)](https://dashboard.balena-cloud.com/deploy?repoUrl=https://github.com/balena-io/open-balena&defaultDeviceType=intel-nuc&configUrl=https://raw.githubusercontent.com/balena-io/open-balena/deploy-with-balena/balena.yml)
+
 
 ## Features
 
