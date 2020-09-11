@@ -1,0 +1,132 @@
+version: '2.0'
+services:
+  api:
+    cap_add:
+    - SYS_ADMIN
+    - SYS_RESOURCE
+    depends_on:
+    - db
+    - redis
+    - s3
+    image: balena/open-balena-api:v0.19.5
+    privileged: true
+    tmpfs:
+    - /run
+    - /sys/fs/cgroup
+  cert-provider:
+    build:
+      context: ./src/cert-provider
+    environment:
+      ACTIVE: "false"
+      DOMAINS: api.openbalena.acme.com,registry.openbalena.acme.com,s3.openbalena.acme.com,vpn.openbalena.acme.com
+      OUTPUT_PEM: /certs/open-balena.pem
+    volumes:
+    - certs:/certs:rw
+    - cert-provider:/usr/src/app/certs:rw
+  config-provider:
+    build:
+      context: ./src/config-provider
+    volumes:
+      - config-provider:/certs:rw
+    labels:
+      io.resin.features.resin-api: '1'
+  db:
+    image: balena/open-balena-db:v2.0.3
+    security_opt:
+    - seccomp:unconfined
+    volumes:
+    - db:/var/lib/postgresql/data:rw
+  haproxy:
+    build:
+      context: ./src/haproxy
+    depends_on:
+    - api
+    - cert-provider
+    - db
+    - redis
+    - registry
+    - s3
+    - vpn
+    expose:
+    - '222'
+    - '5432'
+    - '6379'
+    ports:
+    - 80:80/tcp
+    - 443:443/tcp
+    - 3128:3128/tcp
+    security_opt:
+    - seccomp:unconfined
+    volumes:
+    - certs:/certs:ro
+  redis:
+    image: redis:alpine
+    security_opt:
+    - seccomp:unconfined
+    volumes:
+    - redis:/data:rw
+  registry:
+    cap_add:
+    - SYS_ADMIN
+    - SYS_RESOURCE
+    depends_on:
+    - redis
+    - s3
+    image: balena/open-balena-registry:v2.11.1
+    privileged: true
+    tmpfs:
+    - /run
+    - /sys/fs/cgroup
+    volumes:
+    - registry:/data:rw
+  s3:
+    cap_add:
+    - SYS_ADMIN
+    - SYS_RESOURCE
+    image: balena/open-balena-s3:v2.8.5
+    privileged: true
+    tmpfs:
+    - /run
+    - /sys/fs/cgroup
+    volumes:
+    - s3:/export:rw
+  vpn:
+    cap_add:
+    - NET_ADMIN
+    - SYS_ADMIN
+    - SYS_RESOURCE
+    depends_on:
+    - api    
+    image: balena/open-balena-vpn:v8.10.0
+    privileged: true
+    tmpfs:
+    - /run
+    - /sys/fs/cgroup
+  balena-mdns-publisher:
+    image: balena/balena-mdns-publisher:v1.6.2
+    network_mode: "host"
+    cap_add:
+        - SYS_RESOURCE
+        - SYS_ADMIN
+    security_opt:
+        - apparmor:unconfined
+    tmpfs:
+        - /run
+        - /sys/fs/cgroup
+    # balenaOS - Required for host DBus comms. Not required for standalone Linux
+    labels:
+        io.balena.features.dbus: '1'
+        io.balena.features.supervisor-api: '1'
+    environment:
+        CONFD_BACKEND: ENV
+        MDNS_SUBDOMAINS: '["api", "db", "registry", "s3", "vpn"]'
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/host/run/dbus/system_bus_socket"
+volumes:
+  cert-provider: {}
+  config-provider: {}
+  certs: {}
+  db: {}
+  redis: {}
+  registry: {}
+  s3: {}
+

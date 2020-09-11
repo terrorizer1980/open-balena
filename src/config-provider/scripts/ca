@@ -1,0 +1,134 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+  echo "usage: $0 [-h] -d PKI_DIRECTORY initialise"
+  echo
+
+  exit 1
+}
+
+[[ ! -z "$1" ]] || usage
+
+while getopts ":hd:" opt; do
+  case "${opt}" in
+    h) usage;;
+    d) PKI_DIR="${OPTARG}";;
+    *)
+      echo "Invalid argument: -${OPTARG}"
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+ACTION="$1"
+shift
+
+# for macos machines, we need proper OpenSSL...
+OPENSSL_VERSION=$(openssl version -v)
+if [[ "${OPENSSL_VERSION}" =~ ^LibreSSL.*$ ]]; then
+  echo -e "${RED}ERROR: You may not have a compatible OpenSSL version (${OPENSSL_VERSION}). Please install OpenSSL version 1.0.2q or above.${RESET}"
+  if [ $(uname) == 'Darwin' ]; then
+        echo 'OpenSSL is required to build openBalena on macOS. To install with brew, run'
+        echo ''
+        echo '    brew install openssl'
+        echo ''
+    fi
+  exit 1
+fi
+
+# ensure we have `easyrsa` available
+PATH="$PATH:$PKI_DIR/easyrsa"
+EASYRSA="$(command -v easyrsa 2>/dev/null || true)"
+if [ -z "${EASYRSA-}" ] || [ ! -x "${EASYRSA}" ]; then
+    if [ -z "${EASYRSA}" ]; then
+        easyrsa_dir="$PKI_DIR/easyrsa"
+        mkdir -p "$easyrsa_dir"
+        
+        echo "  - Downloading easy-rsa..."
+        easyrsa_url="https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.5/EasyRSA-nix-3.0.5.tgz"
+        (cd "${easyrsa_dir}"; curl -sL "${easyrsa_url}" | tar xz --strip-components=1)
+        EASYRSA="$(command -v easyrsa 2>/dev/null || true)"
+    fi
+fi
+
+function join_by { local d=$1; shift; local f=$1; shift; printf %s "$f" "${@/#/$d}"; }
+
+export EASYRSA_PKI="${PKI_DIR}/pki"
+export EASYRSA_BATCH=1
+export EASYRSA_KEY_SIZE=4096
+export EASYRSA_CA_EXPIRE=3650
+export EASYRSA_CERT_EXPIRE=730
+
+initialise () {
+    initialise_usage () {
+        echo "usage: $0 [-h] -d PKI_DIRECTORY initialise -n CA_NAME"
+        exit 1
+    }
+
+    local OPTIND o a
+    while getopts "n:" o; do
+        case "${o}" in
+            n) CN="${OPTARG}";;
+            *) initialise_usage;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # ensure we have the values we need
+    [[ ! -z "$CN" ]] || initialise_usage;
+
+    # create a secret key and CA file for the CA
+    "$EASYRSA" init-pki
+    "$EASYRSA" --req-cn="${CN}" build-ca nopass
+    "$EASYRSA" --keysize=1024 gen-dh
+    
+    # update indexes and generate CRLs
+    "$EASYRSA" update-db
+    "$EASYRSA" gen-crl
+}
+
+issue () {
+    issue_usage () {
+        echo "usage: $@ issue -n DOMAIN"
+    }
+
+    ALT_NAMES=()
+    local OPTIND o a
+    while getopts "n:" o; do
+        case "${o}" in
+            n) ALT_NAMES=("${ALT_NAMES[@]}" "DNS:${OPTARG}");;
+            *) initialise_usage;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # get our cert info
+    CN="${ALT_NAMES[0]:4}"
+    SAN="$(join_by , ${ALT_NAMES[@]})"
+
+    if [ -f "$EASYRSA_PKI/issued/$CN.crt" ]; then
+
+        "$EASYRSA" revoke "$CN"
+
+        # clean up issued certs
+        rm -f "$EASYRSA_PKI/reqs/$CN.req" || true
+        rm -f "$EASYRSA_PKI/private/$CN.key" || true
+        rm -f "$EASYRSA_PKI/issued/$CN.crt" || true
+    fi
+
+    # generate default CSR and sign
+    "$EASYRSA" --subject-alt-name="$SAN" build-server-full "$CN" nopass
+
+    # update indexes and generate CRLs
+    "$EASYRSA" update-db
+    "$EASYRSA" gen-crl
+}
+
+case "$ACTION" in
+    initialise) initialise "$@";;
+    issue) issue "$@";;
+    *) usage;;
+esac

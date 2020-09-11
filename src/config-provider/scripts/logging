@@ -1,0 +1,38 @@
+#!/bin/sh
+
+BLACK=`tput setaf 0`
+RED=`tput setaf 1`
+GREEN=`tput setaf 2`
+YELLOW=`tput setaf 3`
+BLUE=`tput setaf 4`
+MAGENTA=`tput setaf 5`
+CYAN=`tput setaf 6`
+WHITE=`tput setaf 7`
+
+BOLD=`tput bold`
+RESET=`tput sgr0`
+
+echo_bold () {
+  echo "${BOLD}${@}${RESET}"
+}
+
+debug_log () {
+  [[ -z "$DEBUG" ]] || echo "${BLUE}${BOLD}[debug]${RESET} ${@}${RESET}"
+}
+
+info_log () {
+  echo "${BLUE}[info]${RESET} ${@}${RESET}"
+}
+
+error_log () {
+  echo "${RED}[error]${RESET} ${@}${RESET}"
+}
+
+success_log () {
+  echo "${GREEN}[success]${RESET} ${@}${RESET}"
+}
+
+fatal_log () {
+  error_log "$@"
+  return 1
+}
