@@ -1,6 +1,6 @@
 FROM alpine
 
-RUN apk add --no-cache bash coreutils curl easy-rsa openssl jq ncurses util-linux
+RUN apk add --no-cache bash coreutils curl easy-rsa openssl jq ncurses util-linux xxd
 RUN mkdir -p /tmp/balena
 
 WORKDIR /

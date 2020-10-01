@@ -8,7 +8,10 @@ services:
     - db
     - redis
     - s3
-    image: balena/open-balena-api:v0.19.5
+    build:
+      context: ./src/build
+      args: 
+        BASE_IMAGE: balena/open-balena-api:v0.19.5
     privileged: true
     tmpfs:
     - /run
@@ -72,7 +75,10 @@ services:
     depends_on:
     - redis
     - s3
-    image: balena/open-balena-registry:v2.11.1
+    build:
+      context: ./src/build
+      args: 
+        BASE_IMAGE: balena/open-balena-registry:v2.11.1
     privileged: true
     tmpfs:
     - /run
@@ -83,7 +89,10 @@ services:
     cap_add:
     - SYS_ADMIN
     - SYS_RESOURCE
-    image: balena/open-balena-s3:v2.8.5
+    build:
+      context: ./src/build
+      args: 
+        BASE_IMAGE: balena/open-balena-s3:v2.8.5
     privileged: true
     tmpfs:
     - /run
@@ -97,7 +106,10 @@ services:
     - SYS_RESOURCE
     depends_on:
     - api    
-    image: balena/open-balena-vpn:v8.10.0
+    build:
+      context: ./src/build
+      args: 
+        BASE_IMAGE: balena/open-balena-vpn:v8.10.0
     privileged: true
     tmpfs:
     - /run

@@ -45,6 +45,17 @@ if [ ! -f "$CERTS_DIR/pki/issued/vpn.$DOMAIN.crt" ] || [ "$FORCE" == "1" ]; then
   "$CA" -d "$CERTS_DIR" issue -n "vpn.$DOMAIN"
 fi
 
+# create some EC certs for registry token auth
+if [ ! -f "$CERTS_DIR/ec/jwt.key" ]; then
+  rm -rf "$CERTS_DIR/ec"
+  mkdir -p "$CERTS_DIR/ec"
+
+  openssl ecparam -name prime256v1 -genkey -noout -out "$CERTS_DIR/ec/jwt.key"
+  openssl req -x509 -new -nodes -days 730 -key "$CERTS_DIR/ec/jwt.key" -subj "/CN=api.${DOMAIN}" -out "$CERTS_DIR/ec/jwt.crt"
+  openssl ec -in "$CERTS_DIR/ec/jwt.key" -pubout -outform DER -out "$CERTS_DIR/ec/jwt.der"
+  cat "$CERTS_DIR/ec/jwt.der" | sha256sum | cut -c 1-60 | xxd -r -p | base32 | sed 's/.\{4\}/&:/g' | cut -c 1-59 > "$CERTS_DIR/ec/jwt.kid"
+fi
+
 randstr() {
   LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w "${1:-32}" | head -n 1
 }
@@ -143,14 +154,14 @@ EOF
   OPENBALENA_ACME_CERT_ENABLED="${ACME_CERT_ENABLED:-false}"
   OPENBALENA_HOST_NAME="$DOMAIN"
   OPENBALENA_SSH_AUTHORIZED_KEYS=""
-  OPENBALENA_TOKEN_AUTH_PUB="$(b64file "$JWT_CRT")"
-  OPENBALENA_TOKEN_AUTH_KEY="$(b64file "$JWT_KEY")"
-  OPENBALENA_TOKEN_AUTH_KID="$(b64file "$JWT_KID")"
+  OPENBALENA_TOKEN_AUTH_PUB="$(b64file "$CERTS_DIR/ec/jwt.crt")"
+  OPENBALENA_TOKEN_AUTH_KEY="$(b64file "$CERTS_DIR/ec/jwt.key")"
+  OPENBALENA_TOKEN_AUTH_KID="$(b64file "$CERTS_DIR/ec/jwt.kid")"
 
   # API service values
   add_variable $DEVICE_ID "API_VPN_SERVICE_API_KEY" "$OPENBALENA_API_VPN_SERVICE_API_KEY"
   add_variable $DEVICE_ID "API_SERVICE_API_KEY" "$OPENBALENA_API_VPN_SERVICE_API_KEY"
-  add_variable $DEVICE_ID "BALENA_ROOT_CA" "$OPENBALENA_ROOT_CA"
+  add_variable $DEVICE_ID "_BALENA_ROOT_CA" "$OPENBALENA_ROOT_CA"
   add_variable $DEVICE_ID "COOKIE_SESSION_SECRET" "$OPENBALENA_COOKIE_SESSION_SECRET"
   add_variable $DEVICE_ID "DELTA_HOST" "delta.$DOMAIN"
   add_variable $DEVICE_ID "DEVICE_CONFIG_OPENVPN_CA" "$OPENBALENA_VPN_CA"
@@ -186,12 +197,12 @@ EOF
   add_variable $DEVICE_ID "TOKEN_AUTH_JWT_ALGO" "ES256"
   add_variable $DEVICE_ID "VPN_HOST" "vpn.$DOMAIN"
   add_variable $DEVICE_ID "VPN_PORT" "443"
-  add_variable $DEVICE_ID "BALENA_VPN_PORT" "443"
+  add_variable $DEVICE_ID "_BALENA_VPN_PORT" "443"
   add_variable $DEVICE_ID "VPN_SERVICE_API_KEY" "$OPENBALENA_VPN_SERVICE_API_KEY"
   add_variable $DEVICE_ID "MDNS_TLD" "$DOMAIN"
 
   # VPN service values
-  add_variable $DEVICE_ID "BALENA_API_HOST" "api.$DOMIN"
+  add_variable $DEVICE_ID "_BALENA_API_HOST" "api.$DOMAIN"
   add_variable $DEVICE_ID "RESIN_VPN_GATEWAY" "10.2.0.1"
   add_variable $DEVICE_ID "VPN_HAPROXY_USEPROXYPROTOCOL" "true"
   add_variable $DEVICE_ID "VPN_OPENVPN_CA_CRT" "$OPENBALENA_VPN_CA"
@@ -200,17 +211,17 @@ EOF
   add_variable $DEVICE_ID "VPN_OPENVPN_SERVER_KEY" "$OPENBALENA_VPN_SERVER_KEY"
   
   # HAProxy service values
-  add_variable $DEVICE_ID "BALENA_HAPROXY_CRT" "$OPENBALENA_ROOT_CRT"
-  add_variable $DEVICE_ID "BALENA_HAPROXY_KEY" "$OPENBALENA_ROOT_KEY"
+  add_variable $DEVICE_ID "_BALENA_HAPROXY_CRT" "$OPENBALENA_ROOT_CRT"
+  add_variable $DEVICE_ID "_BALENA_HAPROXY_KEY" "$OPENBALENA_ROOT_KEY"
   add_variable $DEVICE_ID "HAPROXY_HOSTNAME" "$DOMAIN"
 
   # Registry service values
   add_variable $DEVICE_ID "API_TOKENAUTH_CRT" "$OPENBALENA_TOKEN_AUTH_PUB"
-  add_variable $DEVICE_ID "BALENA_REGISTRY2_HOST" "registry.$DOMAIN"
-  add_variable $DEVICE_ID "BALENA_TOKEN_AUTH_ISSUER" "api.$DOMAIN"
-  add_variable $DEVICE_ID "BALENA_TOKEN_AUTH_REALM" "https://api.$DOMAIN/auth/v1/token"
+  add_variable $DEVICE_ID "_BALENA_REGISTRY2_HOST" "registry.$DOMAIN"
+  add_variable $DEVICE_ID "_BALENA_TOKEN_AUTH_ISSUER" "api.$DOMAIN"
+  add_variable $DEVICE_ID "_BALENA_TOKEN_AUTH_REALM" "https://api.$DOMAIN/auth/v1/token"
   add_variable $DEVICE_ID "REGISTRY2_S3_BUCKET" "$OPENBALENA_REGISTRY2_S3_BUCKET"
-  add_variable $DEVICE_ID "REGISTRY2_S3_REGION_ENDPOINT" "https://s3.$DOMAIN"
+  add_variable $DEVICE_ID "REGISTRY2_S3_REGION_ENDPOINT" "http://s3"
   add_variable $DEVICE_ID "REGISTRY2_S3_KEY" "$OPENBALENA_S3_ACCESS_KEY"
   add_variable $DEVICE_ID "REGISTRY2_S3_SECRET" "$OPENBALENA_S3_SECRET_KEY"
   add_variable $DEVICE_ID "REGISTRY2_SECRETKEY" "$OPENBALENA_REGISTRY_SECRET_KEY"

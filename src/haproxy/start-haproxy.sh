@@ -1,5 +1,7 @@
 #!/bin/sh
 
+echo "${BALENA_ROOT_CA}" | base64 -d > "/etc/ssl/ca.crt"
+
 OPENBALENA_CERT=/etc/ssl/private/open-balena.pem
 mkdir -p "$(dirname "${OPENBALENA_CERT}")"
 
