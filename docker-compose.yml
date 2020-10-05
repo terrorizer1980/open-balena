@@ -131,8 +131,32 @@ services:
         io.balena.features.supervisor-api: '1'
     environment:
         CONFD_BACKEND: ENV
-        MDNS_SUBDOMAINS: '["api", "db", "registry", "s3", "vpn"]'
+        MDNS_SUBDOMAINS: '["api", "db", "ide", "registry", "s3", "vpn"]'
         DBUS_SESSION_BUS_ADDRESS: "unix:path=/host/run/dbus/system_bus_socket"
+  ide:
+    build:
+      context: ./src/ide
+    volumes:
+      - ide-settings:/root
+      - ide-projects:/usr/src/projects
+      - dind-certs:/etc/docker/certs.d/
+    environment: 
+      DBUS_SESSION_BUS_ADDRESS: "unix:path=/host/run/dbus/system_bus_socket"
+      DOCKER_HOST: "tcp://dind:2375"
+    labels:
+      io.balena.features.dbus: '1'
+  dind:
+    build:
+      context: ./src/dind
+    privileged: true
+    environment:
+      DBUS_SESSION_BUS_ADDRESS: "unix:path=/host/run/dbus/system_bus_socket"
+      DOCKER_EXTRA_OPTS: "--host=tcp://0.0.0.0:2375"
+    volumes: 
+      - dind-data:/var/lib/docker
+      - dind-certs:/etc/docker/certs.d/
+    labels:
+      io.balena.features.dbus: '1'
 volumes:
   cert-provider: {}
   config-provider: {}
@@ -141,4 +165,8 @@ volumes:
   redis: {}
   registry: {}
   s3: {}
+  ide-settings: {}
+  ide-projects: {}
+  dind-data: {}
+  dind-certs: {}
 

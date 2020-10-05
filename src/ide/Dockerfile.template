@@ -1,0 +1,37 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-debian-node:14-run
+WORKDIR /usr/src
+
+ARG BALENA_CLI_VERSION=12.2.2
+RUN install_packages \
+        avahi-daemon \
+        avahi-utils \
+        git \
+        jq \
+        libnss-mdns \
+        openssh-client \
+        tcpdump \
+        unzip
+
+# Install code-server
+RUN curl -fsSL https://code-server.dev/install.sh | sh
+
+# Install balena-cli
+# Calling balena-cli from the code-server editor throws: "Pkg: FLAGS_MISMATCH"
+# See: https://github.com/vercel/pkg/issues/484
+# Fix is to unset NODE_OPTIONS env var
+COPY bin/balena.sh /usr/bin/balena
+RUN chmod +x /usr/bin/balena
+RUN curl -O -sSL https://github.com/balena-io/balena-cli/releases/download/v${BALENA_CLI_VERSION}/balena-cli-v${BALENA_CLI_VERSION}-linux-x64-standalone.zip && \
+    unzip balena-cli-*-linux-x64-standalone.zip -d /opt && \
+    rm balena-cli-*-linux-x64-standalone.zip
+
+COPY . ./ide
+
+COPY ./etc/avahi-daemon.conf /etc/avahi/avahi-daemon.conf
+COPY ./etc/mdns.allow /etc/mdns.allow
+
+RUN sed -i 's/mdns4_minimal/mdns4/g' /etc/nsswitch.conf
+
+CMD [ "/bin/bash", "/usr/src/ide/start.sh" ]
+
+

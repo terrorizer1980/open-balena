@@ -126,6 +126,9 @@ EOF
     success_log "Removed all configuration for device $DEVICE_ID";
   fi
 
+  # grab a simple root CA file
+  ROOT_CA="$(openssl x509 -in "$CERTS_DIR/pki/ca.crt")"
+
   # set the values for the environment
   OPENBALENA_PRODUCTION_MODE="false"
   OPENBALENA_COOKIE_SESSION_SECRET="$(randstr 32)"
@@ -133,11 +136,11 @@ EOF
   OPENBALENA_REGISTRY_SECRET_KEY="$(randstr 32)"
   OPENBALENA_REGISTRY2_S3_BUCKET="registry-data"
   OPENBALENA_RESINOS_REGISTRY_CODE="$(randstr 32)"
-  OPENBALENA_ROOT_CA="$(b64file "$CERTS_DIR/pki/ca.crt")"
+  OPENBALENA_ROOT_CA="$(b64encode "$ROOT_CA")"
   OPENBALENA_ROOT_CRT="$(b64file "$CERTS_DIR/pki/issued/*.$DOMAIN.crt")"
   OPENBALENA_ROOT_KEY="$(b64file "$CERTS_DIR/pki/private/*.$DOMAIN.key")"
-  OPENBALENA_VPN_CA="$(b64file "$CERTS_DIR/pki/ca.crt")"
-  OPENBALENA_VPN_CA_CHAIN="$(b64file "$CERTS_DIR/pki/ca.crt")"
+  OPENBALENA_VPN_CA=""
+  OPENBALENA_VPN_CA_CHAIN=""
   OPENBALENA_VPN_SERVER_CRT="$(b64file "$CERTS_DIR/pki/issued/vpn.$DOMAIN.crt")"
   OPENBALENA_VPN_SERVER_KEY="$(b64file "$CERTS_DIR/pki/private/vpn.$DOMAIN.key")"
   OPENBALENA_VPN_SERVER_DH="$(b64file "$CERTS_DIR/pki/dh.pem")"
