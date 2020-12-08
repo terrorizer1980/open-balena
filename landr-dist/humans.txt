@@ -1,0 +1,18 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TEAM
+
+https://github.com/richbayliss
+https://github.com/dfunckt
+https://github.com/wrboyce
+https://github.com/hedss
+https://github.com/xginn8
+https://github.com/Langhalsdino
+https://github.com/nazrhom
+https://github.com/roman-mazur
+https://github.com/sradevski
+
+# TECHNOLOGY COLOPHON
+
+React, React Static, Rendition, Landr
