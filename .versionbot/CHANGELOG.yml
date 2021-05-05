@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'minor: Update API version'
+      hash: 7988c2373c3473a599252cf86635345db4f8650e
+      body: >-
+        There is a bug in `v0.119.5` where the API will crash if there is no
+        internet connection. The API tries to fetch the contracts from github
+        and fails. The exception is not caught and crashed the application. The
+        latest version, has this fix
+      footer: {}
+      author: Nick Tsutsunava
+      nested: []
+  version: 3.4.0
+  date: 2021-05-05T15:00:40.936Z
+- commits:
     - subject: Update registry service
       hash: 49831a6a60f7ce2021c6a06f89d63dc6ba5d21dd
       body: ''
