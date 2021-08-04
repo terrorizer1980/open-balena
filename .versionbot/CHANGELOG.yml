@@ -1,4 +1,15 @@
 - commits:
+    - subject: Move haproxy code to upstream repository
+      hash: 3370b4bee1e861a3dcabe2d9cddddcef09e3e6a6
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: ab77
+      nested: []
+  version: 3.5.0
+  date: 2021-08-04T16:15:52.245Z
+- commits:
     - subject: Delete CODEOWNERS
       hash: a328e8fc1d3b151b2066f8018c80655e60feef7f
       body: ''
